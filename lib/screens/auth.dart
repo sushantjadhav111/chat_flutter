@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -19,6 +20,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _form = GlobalKey<FormState>();
+  var _enterName = "";
   var _enteredEmail = "";
   var _enteredPassword = "";
   var _isAuthenticating = false;
@@ -47,7 +49,14 @@ class _AuthScreenState extends State<AuthScreen> {
             .child('${userCredentials.user!.uid}.jpg');
         await storageRef.putFile(_selectedImage!);
         final imageUrl = await storageRef.getDownloadURL();
-        print(imageUrl);
+        FirebaseFirestore.instance
+            .collection('user')
+            .doc(userCredentials.user!.uid)
+            .set({
+          "username": _enterName,
+          "email": _enteredEmail,
+          "image_url": imageUrl
+        });
       }
     } on FirebaseAuthException catch (error) {
       if (error.code == "email-already-in-use") {}
@@ -87,6 +96,25 @@ class _AuthScreenState extends State<AuthScreen> {
                           UserImagePicker(
                             onPickImage: (pickedImage) {
                               _selectedImage = pickedImage;
+                            },
+                          ),
+                        if (!_isLogin)
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Name'),
+                            keyboardType: TextInputType.name,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            textCapitalization: TextCapitalization.none,
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  value.trim().length < 4) {
+                                return "Please Enter valid Name(at least 4 char)";
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enterName = value!;
                             },
                           ),
                         TextFormField(
